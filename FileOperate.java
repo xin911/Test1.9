@@ -1,7 +1,7 @@
 /**
  * 
  */
-package FileUtil;
+package com.fileoperate;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -13,17 +13,19 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * @author dell
  *
  */
 public class FileOperate {
-	// public static Logger logger = Logger.getAnonymousLogger();
+	// public static Logger logger = Logger.getLogger("INFO");
 
 	/**
 	 * 
@@ -101,7 +103,6 @@ public class FileOperate {
 	/**
 	 * 字符读取
 	 * 
-	 * @deprecated
 	 * @param filePath
 	 */
 	public static long readFileByCharacter(String filePath) {
@@ -194,28 +195,36 @@ public class FileOperate {
 	 * 
 	 * @param filePath
 	 */
-	public static long readLargeFileByByte(String filePath, int n, String outputFilePath) {
+	public static long readLargeFileByByte(String filePath, int n,
+			String outputFilePath) {
 		long start = System.currentTimeMillis();
 		BufferedInputStream bis = null;
 		BufferedReader bfr = null;
 		FileWriter fileWriter = null;
 		String line;
-		int i = 0;
 		try {
-			bis = new BufferedInputStream(new FileInputStream(new File(filePath)));
+			bis = new BufferedInputStream(new FileInputStream(
+					new File(filePath)));
 			bfr = new BufferedReader(new InputStreamReader(bis, "UTF-8"), n);
 			fileWriter = new FileWriter(new File(outputFilePath));
+			StringBuffer sb = new StringBuffer();
+			Map<String, Integer> map = new HashMap<String, Integer>();
 			while ((line = bfr.readLine()) != null) {
-				fileWriter.append(line + "\n");
-				i++;
+				// fileWriter.append(sb.append(line + "\n"));
+				if (map.containsKey(line.trim())) {
+					map.put(line.trim(), map.get(line.trim()) + 1);
+				} else {
+					map.put(line.trim(), 1);
+				}
 			}
-			System.out.println(fileWriter.toString());
+			// iterateSet(map);
+			// forEach(map);
+			fileWriter.append(entrySet(map));
+			// System.out.println(sb.toString());
 			fileWriter.flush();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (OutOfMemoryError e) {
 			e.printStackTrace();
 		} finally {
 			try {
@@ -239,16 +248,12 @@ public class FileOperate {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			System.out.println("[" + i + ":行数" + "][" + Runtime.getRuntime().freeMemory() / (1014 * 1024) + "/"
-					+ Runtime.getRuntime().totalMemory() / (1014 * 1024) + "/"
-					+ Runtime.getRuntime().maxMemory() / (1014 * 1024) + "][进程数:"
-					+ ManagementFactory.getThreadMXBean().getThreadCount() + "]");
 		}
 		return System.currentTimeMillis() - start;
 	}
 
 	/**
-	 * NIO 行读取
+	 * NIO Byte读取
 	 * 
 	 * @param filePath
 	 */
@@ -259,19 +264,16 @@ public class FileOperate {
 		// FileOutputStream fos = null;
 		FileChannel fc = null;
 		// FileChannel fc2 = null;
-		int i = 0;
 		try {
 			fis = new FileInputStream(new File(filePath));
 			// fos = new FileOutputStream(new File(fileOutPath));
 			fc = fis.getChannel();
 			// FileChannel fc2 = fos.getChannel();
-			// fc.transferTo(0, fc.size(), fos);//连接两个通道，并且从in通道读取，然后写入out通道
-			while (fc.read(bb = ByteBuffer.allocate(n)) != -1) {
-				bb.flip();
-				// System.out.print("[" +
-				// Charset.defaultCharset().newDecoder().decode(bb) + "]");
+			bb = ByteBuffer.allocate(n);
+			while (fc.read(bb) != -1) {
 				bb.clear();
-				i++;
+				bb.flip();
+				// fc2.write(bb);
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -293,23 +295,6 @@ public class FileOperate {
 				e.printStackTrace();
 			}
 		}
-		System.out.println("\n[" + i + ":行数" + "][" + Runtime.getRuntime().freeMemory() / (1014 * 1024) + "/"
-				+ Runtime.getRuntime().totalMemory() / (1014 * 1024) + "/"
-				+ Runtime.getRuntime().maxMemory() / (1014 * 1024) + "][进程数:"
-				+ ManagementFactory.getThreadMXBean().getThreadCount() + "]");
-		return System.currentTimeMillis() - start;
-	}
-
-	public static long readBymappedByteBuffer(String filePath, int n) {
-		long start = System.currentTimeMillis();
-		BufferedInputStream bufferedInputStream = null;
-		try {
-			bufferedInputStream = new BufferedInputStream(new FileInputStream(new File(filePath)));
-			while(bufferedInputStream.read(new byte[12])!= null)
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-		MappedByteBuffer mappedByteBuffer = (MappedByteBuffer) MappedByteBuffer.allocateDirect(n);
 		return System.currentTimeMillis() - start;
 	}
 
@@ -317,8 +302,74 @@ public class FileOperate {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		// readFileByLine
-		System.out.println(readFileByNIO("D:/JAVA/trunk/Test1.8/resource/read2.txt", null, 5 * 1024 * 1024));
 
+		System.out.println("大文件行读取[]: "
+		// iplog.20170825
+				+ readLargeFileByByte("D:/相关文档/利农商城/iplog.20170825",
+				// 5 * 1024* 1024
+						5, "C:/Users/dell/Desktop/accesslog.170812") + "ms");
+
+		/**
+		 * System.out.println("流读取[]: " +
+		 * readFileByCharacter("C:/Users/dell/Desktop/accesslog.170810", 1024) +
+		 * "ms");
+		 */
+		/**
+		 * System.out.println("行读取[]: " +
+		 * readFileByCharacter("C:/Users/dell/Desktop/accesslog.170810", 1024) +
+		 * "ms");
+		 */
+		// readFileByLine
+	}
+
+	/**
+	 * entrySet遍历用时：44526672ns
+	 * 
+	 * @param map
+	 */
+	public static StringBuffer entrySet(Map<String, Integer> map) {
+		long start = System.nanoTime();
+		StringBuffer sb = new StringBuffer();
+		for (Map.Entry<String, Integer> entry : map.entrySet()) {
+			// System.out.println(entry.getKey() + "|" + entry.getValue());
+			sb.append(entry.getKey() + "|" + entry.getValue() + "\n");
+		}
+		System.out
+				.println("entrySet遍历用时：" + (System.nanoTime() - start) + "ns");
+		return sb;
+	}
+
+	/**
+	 * iterateSet用时：1425709ns
+	 * 
+	 * @param map
+	 */
+	public static StringBuffer iterateSet(Map<String, Integer> map) {
+		long start = System.nanoTime();
+		StringBuffer sb = new StringBuffer();
+		Iterator<Entry<String, Integer>> iter = map.entrySet().iterator();
+		Map.Entry<String, Integer> entry;
+		while (iter.hasNext()) {
+			entry = iter.next();
+			// System.out.println(entry.getKey() + "|" + entry.getValue());
+		}
+		System.out
+				.println("iterateSet用时：" + (System.nanoTime() - start) + "ns");
+		return sb;
+	}
+
+	/**
+	 * entrySet遍历用时：44526672ns forEach遍历用时：127330675ns
+	 * 
+	 * @param map
+	 */
+	public static StringBuffer forEach(Map<String, Integer> map) {
+		long start = System.nanoTime();
+		StringBuffer sb = new StringBuffer();
+		map.forEach((k, v) -> {
+			// System.out.println(k + "|" + v);
+		});
+		System.out.println("forEach遍历用时：" + (System.nanoTime() - start) + "ns");
+		return sb;
 	}
 }
